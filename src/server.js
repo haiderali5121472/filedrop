@@ -251,7 +251,15 @@ async function createServer({
     
     fileStream.on('data', (chunk) => {
       const encrypted = cipher.update(chunk);
-      if (encrypted.length > 0) res.write(encrypted);
+      if (encrypted.length > 0) {
+        if (!res.write(encrypted)) {
+          fileStream.pause();
+        }
+      }
+    });
+
+    res.on('drain', () => {
+      fileStream.resume();
     });
 
     fileStream.on('end', () => {

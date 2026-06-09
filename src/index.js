@@ -134,9 +134,9 @@ async function main() {
       console.log(qr.renderMetadataBox(filename, config.fileSize + ' bytes', url, config.mdns ? mdnsName : null, { color: config.color }));
     }
   } else {
-    console.log(\`URL: \${url}\`);
+    console.log(`URL: ${url}`);
     if (config.mdns) {
-      console.log(\`mDNS: \${mdnsName}.local\`);
+      console.log(`mDNS: http://${mdnsName}.local/#${keyHex}`);
     }
   }
 
