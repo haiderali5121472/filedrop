@@ -107,6 +107,7 @@ async function createServer({
         const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
         let loadedBytes = 0;
         const chunks = [];
+        if (!response.body) throw new Error("ReadableStream not supported by browser");
         const reader = response.body.getReader();
 
         statusEl.innerText = "Downloading...";
@@ -116,7 +117,7 @@ async function createServer({
           chunks.push(value);
           loadedBytes += value.length;
           if (totalBytes > 0) {
-            const percent = Math.round((loadedBytes / totalBytes) * 100);
+            const percent = Math.min(100, Math.round((loadedBytes / totalBytes) * 100));
             progressEl.style.width = percent + "%";
             percentEl.innerText = percent + "%";
           }
@@ -286,6 +287,7 @@ async function createServer({
     res.setHeader('X-Filedrop-Version', version);
     res.setHeader('X-Transfer-ID', transferId);
     res.setHeader('Access-Control-Expose-Headers', 'Content-Length');
+    res.setHeader('Content-Length', fileStat.size + 28);
 
     let responseFinished = false;
     let transferConcluded = false;
