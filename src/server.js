@@ -53,23 +53,9 @@ async function createServer({
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Download ${escapeHtml(fileName)}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #000; color: #fff; margin: 0; }
-    .container { text-align: center; padding: 20px; border-radius: 12px; background: #111; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-    h1 { font-size: 1.5rem; margin-bottom: 8px; word-break: break-all; }
-    p { color: #888; font-size: 0.9rem; margin-bottom: 24px; }
-    .progress-bar { width: 100%; max-width: 300px; height: 8px; background: #333; border-radius: 4px; margin: 0 auto; overflow: hidden; }
-    .progress-fill { height: 100%; background: #0A84FF; width: 0%; transition: width 0.2s; }
-  </style>
+  <title>Download</title>
 </head>
 <body>
-  <div class="container">
-    <h1>${escapeHtml(fileName)}</h1>
-    <p id="status">Decrypting & Downloading...</p>
-    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
-  </div>
   <script src="/forge.min.js"></script>
   <script>
     function u8ToBinaryString(u8) {
@@ -82,18 +68,13 @@ async function createServer({
     }
 
     (async function() {
-      const statusEl = document.getElementById('status');
-      const progressEl = document.getElementById('progress');
       try {
         const hash = window.location.hash.slice(1);
-        if (!hash) throw new Error("Missing decryption key in URL");
+        if (!hash) return;
         
-        statusEl.innerText = "Downloading encrypted file...";
         const response = await fetch('/download');
-        if (!response.ok) throw new Error("File not found or already transferred.");
-        
+        if (!response.ok) return;
         const encryptedBuffer = await response.arrayBuffer();
-        statusEl.innerText = "Decrypting locally...";
         
         const iv = new Uint8Array(encryptedBuffer.slice(0, 12));
         const data = new Uint8Array(encryptedBuffer.slice(12));
@@ -139,9 +120,6 @@ async function createServer({
           }
         }
         
-        statusEl.innerText = "Saving file...";
-        progressEl.style.width = "100%";
-        
         const blob = new Blob([decryptedBuffer], { type: "application/octet-stream" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -151,12 +129,12 @@ async function createServer({
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
-        statusEl.innerText = "Transfer Complete! You can close this page.";
+
+        setTimeout(() => {
+          window.close();
+          window.history.back();
+        }, 500);
       } catch (err) {
-        statusEl.innerText = "Error: " + err.message;
-        statusEl.style.color = "#FF453A";
-        progressEl.style.background = "#FF453A";
         console.error(err);
       }
     })();
