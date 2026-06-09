@@ -86,7 +86,7 @@ async function main() {
     }).catch(err => {
       // fire and forget with error callback
       if (config.verbose) {
-        console.error(\`mDNS error: \${err.message}\`);
+        console.error(`mDNS error: ${err.message}`);
       }
     });
   }

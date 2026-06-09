@@ -168,8 +168,16 @@ async function createServer({
     const { method, url } = req;
     
     if (url === '/forge.min.js') {
-      res.writeHead(200, { 'Content-Type': 'application/javascript', 'Cache-Control': 'max-age=31536000' });
-      fs.createReadStream(path.join(__dirname, '../node_modules/node-forge/dist/forge.min.js')).pipe(res);
+      const forgePath = path.join(__dirname, '../node_modules/node-forge/dist/forge.min.js');
+      const forgeStream = fs.createReadStream(forgePath);
+      forgeStream.on('error', () => {
+        if (!res.headersSent) res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+      });
+      forgeStream.on('open', () => {
+        if (!res.headersSent) res.writeHead(200, { 'Content-Type': 'application/javascript', 'Cache-Control': 'max-age=31536000' });
+        forgeStream.pipe(res);
+      });
       return;
     }
 
