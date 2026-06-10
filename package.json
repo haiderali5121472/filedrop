@@ -32,6 +32,7 @@
   "author": "dreamstick",
   "license": "MIT",
   "dependencies": {
+    "archiver": "^8.0.0",
     "mime": "^3.0.0",
     "minimist": "^1.2.8",
     "multicast-dns": "^7.2.5",
