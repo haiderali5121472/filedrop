@@ -252,6 +252,10 @@ async function createServer({
             const doCopy = () => {
               btn.innerText = 'Copied!';
               btn.style.background = '#30D158';
+              setTimeout(() => {
+                window.close();
+                window.history.back();
+              }, 1500);
             };
             if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(text).then(doCopy).catch(err => {
