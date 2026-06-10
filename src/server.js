@@ -118,12 +118,18 @@ async function createServer({
 </head>
 <body>
   <div class="container">
-    <h1>${escapeHtml(fileName)}</h1>
-    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
-    <div class="status-row">
-      <span id="statusText">Connecting...</span>
-      <span id="percentText">0%</span>
-    </div>
+    ${isClipboard ? `
+      <h1 style="font-size: 1.2rem; margin-bottom: 20px; color: #EAEAEA;">Clipboard Received</h1>
+      <textarea id="clipText" readonly style="width:100%; height:150px; font-family:monospace; padding:12px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white; resize:none; box-sizing:border-box; outline:none; font-size:0.95rem; line-height:1.4;">Loading...</textarea>
+      <button id="copyBtn" style="margin-top:20px; padding:12px 24px; border-radius:8px; border:none; background:#0A84FF; color:white; font-weight:bold; font-size:16px; cursor:pointer; width:100%;">Copy to Clipboard</button>
+    ` : `
+      <h1>${escapeHtml(fileName)}</h1>
+      <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+      <div class="status-row">
+        <span id="statusText">Connecting...</span>
+        <span id="percentText">0%</span>
+      </div>
+    `}
   </div>
   <script src="/forge.min.js"></script>
   <script>
@@ -141,17 +147,21 @@ async function createServer({
       const percentEl = document.getElementById('percentText');
       const progressEl = document.getElementById('progress');
 
+      const setStatus = (txt) => { if (statusEl) statusEl.innerText = txt; };
+      const setPercent = (txt) => { if (percentEl) percentEl.innerText = txt; };
+      const setProgressWidth = (width) => { if (progressEl) progressEl.style.width = width; };
+
       try {
         const hash = window.location.hash.slice(1);
         if (!hash) {
-          statusEl.innerText = "Error: Missing Key";
+          setStatus("Error: Missing Key");
           return;
         }
         
-        statusEl.innerText = "Fetching...";
+        setStatus("Fetching...");
         const response = await fetch('${downloadPath}');
         if (!response.ok) {
-          statusEl.innerText = "Error: Link Expired";
+          setStatus("Error: Link Expired");
           return;
         }
 
@@ -162,7 +172,7 @@ async function createServer({
         if (!response.body) throw new Error("ReadableStream not supported by browser");
         const reader = response.body.getReader();
 
-        statusEl.innerText = "Downloading...";
+        setStatus("Downloading...");
         while(true) {
           const {done, value} = await reader.read();
           if (done) break;
@@ -170,17 +180,17 @@ async function createServer({
           loadedBytes += value.length;
           if (totalBytes > 0) {
             const percent = Math.min(100, Math.round((loadedBytes / totalBytes) * 100));
-            progressEl.style.width = percent + "%";
-            percentEl.innerText = percent + "%";
+            setProgressWidth(percent + "%");
+            setPercent(percent + "%");
           } else {
             const mb = (loadedBytes / (1024 * 1024)).toFixed(1);
-            percentEl.innerText = mb + " MB";
-            progressEl.style.width = "100%";
-            progressEl.style.animation = "pulse 1.5s ease-in-out infinite";
+            setPercent(mb + " MB");
+            setProgressWidth("100%");
+            if (progressEl) progressEl.style.animation = "pulse 1.5s ease-in-out infinite";
           }
         }
 
-        statusEl.innerText = "Decrypting...";
+        setStatus("Decrypting...");
         const encryptedBuffer = new Uint8Array(loadedBytes);
         let position = 0;
         for (let chunk of chunks) {
@@ -232,9 +242,9 @@ async function createServer({
           }
         }
         
-        statusEl.innerText = "Transfer Complete!";
-        percentEl.innerText = "100%";
-        progressEl.style.width = "100%";
+        setStatus("Transfer Complete!");
+        setPercent("100%");
+        setProgressWidth("100%");
 
         const blob = new Blob([decryptedBuffer], { type: "application/octet-stream" });
         const url = URL.createObjectURL(blob);
@@ -244,18 +254,15 @@ async function createServer({
 
         if (${isClipboard}) {
           const text = new TextDecoder().decode(decryptedBuffer);
-          const container = document.querySelector('.container');
-          container.innerHTML = '<h1>Clipboard Received</h1><textarea readonly style="width:100%; height:150px; margin-top:20px; font-family:monospace; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white; resize:none;">' + text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</textarea><button id="copyBtn" style="margin-top:20px; padding:12px 24px; border-radius:8px; border:none; background:#0A84FF; color:white; font-weight:bold; font-size:16px; cursor:pointer;">Copy to Clipboard</button>';
+          const textArea = document.getElementById('clipText');
+          if (textArea) textArea.value = text;
           
           document.getElementById('copyBtn').addEventListener('click', () => {
             const btn = document.getElementById('copyBtn');
             const doCopy = () => {
               btn.innerText = 'Copied!';
               btn.style.background = '#30D158';
-              setTimeout(() => {
-                window.close();
-                window.history.back();
-              }, 1500);
+              window.close();
             };
             if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(text).then(doCopy).catch(err => {
@@ -266,13 +273,13 @@ async function createServer({
               fallbackCopy();
             }
             function fallbackCopy() {
-              const textArea = document.createElement('textarea');
-              textArea.value = text;
-              textArea.style.position = 'fixed';
-              textArea.style.opacity = '0';
-              document.body.appendChild(textArea);
-              textArea.focus();
-              textArea.select();
+              const dummyTextArea = document.createElement('textarea');
+              dummyTextArea.value = text;
+              dummyTextArea.style.position = 'fixed';
+              dummyTextArea.style.opacity = '0';
+              document.body.appendChild(dummyTextArea);
+              dummyTextArea.focus();
+              dummyTextArea.select();
               try {
                 const successful = document.execCommand('copy');
                 if (successful) {
@@ -286,7 +293,7 @@ async function createServer({
                 btn.innerText = 'Copy Failed';
                 btn.style.background = '#FF453A';
               }
-              document.body.removeChild(textArea);
+              document.body.removeChild(dummyTextArea);
             }
           });
         } else {
@@ -296,12 +303,11 @@ async function createServer({
           URL.revokeObjectURL(url);
           setTimeout(() => {
             window.close();
-            window.history.back();
           }, 3000);
         }
       } catch (err) {
-        statusEl.innerText = "Decryption Failed";
-        statusEl.style.color = "#FF453A";
+        setStatus("Decryption Failed");
+        if (statusEl) statusEl.style.color = "#FF453A";
         console.error(err);
       }
     })();
