@@ -49,6 +49,36 @@ async function createServer({
   let hasTransferred = false;
   const sockets = new Set();
 
+  // Rate limiting: max 30 requests per 10 seconds per IP
+  const rateLimitWindow = 10000; // 10 seconds
+  const rateLimitMax = 30;
+  const ipRequestCounts = new Map();
+
+  function checkRateLimit(ip) {
+    const now = Date.now();
+    let record = ipRequestCounts.get(ip);
+    if (!record || (now - record.windowStart) > rateLimitWindow) {
+      record = { windowStart: now, count: 1 };
+      ipRequestCounts.set(ip, record);
+      return true; // allowed
+    }
+    record.count++;
+    if (record.count > rateLimitMax) {
+      return false; // blocked
+    }
+    return true; // allowed
+  }
+
+  const rateLimitCleanup = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of ipRequestCounts) {
+      if ((now - record.windowStart) > rateLimitWindow * 2) {
+        ipRequestCounts.delete(ip);
+      }
+    }
+  }, rateLimitWindow * 2);
+  rateLimitCleanup.unref();
+
   const htmlPayload = `<!DOCTYPE html>
 <html>
 <head>
@@ -205,6 +235,13 @@ async function createServer({
 
   const server = http.createServer((req, res) => {
     const { method, url } = req;
+
+    const clientIp = req.socket.remoteAddress;
+    if (!checkRateLimit(clientIp)) {
+      res.writeHead(429, { 'Content-Type': 'text/plain', 'Retry-After': '10' });
+      res.end('Too Many Requests');
+      return;
+    }
     
     if (url === '/forge.min.js') {
       const forgePath = path.join(__dirname, '../node_modules/node-forge/dist/forge.min.js');
