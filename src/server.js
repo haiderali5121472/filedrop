@@ -259,6 +259,12 @@ async function createServer({
       return;
     }
 
+    if (method !== 'GET' && method !== 'HEAD') {
+      res.writeHead(405, { 'Allow': 'GET, HEAD', 'Content-Type': 'text/plain' });
+      res.end('Method Not Allowed');
+      return;
+    }
+
     // Serve the HTML Decryptor Interface
     if (url === '/' || url === `/${encodeURI(fileName)}`) {
       if (hasTransferred) {
@@ -290,12 +296,6 @@ async function createServer({
       return;
     }
 
-    if (method !== 'GET' && method !== 'HEAD') {
-      res.writeHead(405, { 'Allow': 'GET, HEAD', 'Content-Type': 'text/plain' });
-      res.end('Method Not Allowed');
-      return;
-    }
-
     if (req.headers.range) {
       res.writeHead(416, { 'Content-Type': 'text/plain' });
       res.end('Range Not Satisfiable');
@@ -309,6 +309,7 @@ async function createServer({
       res.setHeader('Connection', 'close');
       res.setHeader('X-Filedrop-Version', version);
       res.setHeader('X-Transfer-ID', transferId);
+      res.setHeader('Content-Length', fileStat.size + 28);
       res.end();
       return;
     }
@@ -440,7 +441,7 @@ async function createServer({
     server.listen(port, () => {
       server.removeListener('error', reject);
       // Expose keyHex here
-      resolve({ server, shutdown, keyHex });
+      resolve({ server, shutdown, keyHex, downloadPath });
     });
   });
 }
