@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.8] - 2026-06-11
+### Added
+- Multi-file zipping and downloading.
+- On-the-fly Directory zipping.
+- Cross-device Clipboard sharing (`--clipboard`).
+- Interactive Multi-user concurrent downloads (prompts for number of users).
+
+### Fixed
+- Mobile browser safe browsing prompts (wipes the URL hash to protect the decryption key instead of auto-closing the window).
+
 ## [1.0.0] - 2026-06-08
 ### Added
 - Instant ephemeral HTTP server to serve a single file.
