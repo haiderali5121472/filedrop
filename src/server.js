@@ -368,7 +368,7 @@ async function createServer({
     let sourceStream;
     try {
       if (isDirectory) {
-        const archive = archiver('zip', { zlib: { level: 5 } });
+        const archive = new archiver.ZipArchive({ zlib: { level: 5 } });
         archive.directory(filePath, false);
         archive.finalize();
         sourceStream = archive;
