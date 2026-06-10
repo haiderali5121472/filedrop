@@ -309,9 +309,13 @@ async function createServer({
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
-          setTimeout(() => {
-            window.close();
-          }, 3000);
+
+          // Security measure: Erase the decryption key from the address bar
+          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          setStatus("Done");
+          const h1 = document.querySelector('h1');
+          if (h1) h1.innerText = "Download Started - Safe to close";
         }
       } catch (err) {
         setStatus("Decryption Failed");
