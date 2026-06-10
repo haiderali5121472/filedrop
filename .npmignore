@@ -1,20 +1,8 @@
-test/
 docs/
-.github/
-*.test.js
-*.test-helper.js
-
-# Development config files
-.eslintrc.json
-.prettierrc
-tsconfig.json
-jest.config.js
-
-# Binary build outputs
-dist/
-build/
-*.exe
-
-# Other
-Formula/
-scripts/
+research/
+*.sh
+test_*.js
+test-server.js
+find_dupes.js
+test-ephemeral.sh
+qa_test.sh
