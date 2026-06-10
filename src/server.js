@@ -15,6 +15,8 @@ function escapeHtml(unsafe) {
 
 async function createServer({
   filePath,
+  clipboardData = null,
+  isClipboard = false,
   port,
   isDirectory = false,
   options = {},
@@ -23,7 +25,9 @@ async function createServer({
   onTransferComplete,
   onTransferError
 }) {
-  const fileName = isDirectory ? path.basename(filePath) + '.zip' : path.basename(filePath);
+  const fileName = isClipboard
+    ? 'clipboard.txt'
+    : (isDirectory ? path.basename(filePath) + '.zip' : path.basename(filePath));
   const transferId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
   const downloadToken = crypto.randomBytes(16).toString('hex');
   const downloadPath = `/download/${downloadToken}`;
@@ -34,7 +38,9 @@ async function createServer({
   
   let fileStat;
   try {
-    fileStat = await fs.promises.stat(filePath);
+    if (!isClipboard) {
+      fileStat = await fs.promises.stat(filePath);
+    }
   } catch (err) {
     onTransferError(err);
     throw err;
@@ -226,15 +232,29 @@ async function createServer({
         const a = document.createElement('a');
         a.href = url;
         a.download = decodeURIComponent("${encodeURIComponent(fileName)}");
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
 
-        setTimeout(() => {
-          window.close();
-          window.history.back();
-        }, 3000);
+        if (${isClipboard}) {
+          const text = new TextDecoder().decode(decryptedBuffer);
+          const container = document.querySelector('.container');
+          container.innerHTML = '<h1>Clipboard Received</h1><textarea readonly style="width:100%; height:150px; margin-top:20px; font-family:monospace; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white; resize:none;">' + text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</textarea><button id="copyBtn" style="margin-top:20px; padding:12px 24px; border-radius:8px; border:none; background:#0A84FF; color:white; font-weight:bold; font-size:16px; cursor:pointer;">Copy to Clipboard</button>';
+          
+          document.getElementById('copyBtn').addEventListener('click', () => {
+            navigator.clipboard.writeText(text).then(() => {
+              const btn = document.getElementById('copyBtn');
+              btn.innerText = 'Copied!';
+              btn.style.background = '#30D158';
+            });
+          });
+        } else {
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          setTimeout(() => {
+            window.close();
+            window.history.back();
+          }, 3000);
+        }
       } catch (err) {
         statusEl.innerText = "Decryption Failed";
         statusEl.style.color = "#FF453A";
@@ -344,7 +364,7 @@ async function createServer({
       res.setHeader('Connection', 'close');
       res.setHeader('X-Filedrop-Version', version);
       res.setHeader('X-Transfer-ID', transferId);
-      if (!isDirectory) res.setHeader('Content-Length', fileStat.size + 28);
+      if (!isDirectory && !isClipboard) res.setHeader('Content-Length', fileStat.size + 28);
       res.end();
       return;
     }
@@ -362,7 +382,7 @@ async function createServer({
     res.setHeader('X-Filedrop-Version', version);
     res.setHeader('X-Transfer-ID', transferId);
     res.setHeader('Access-Control-Expose-Headers', 'Content-Length');
-    if (!isDirectory) res.setHeader('Content-Length', fileStat.size + 28);
+    if (!isDirectory && !isClipboard) res.setHeader('Content-Length', fileStat.size + 28);
 
     let responseFinished = false;
     let transferConcluded = false;
@@ -397,7 +417,9 @@ async function createServer({
 
     let sourceStream;
     try {
-      if (isDirectory) {
+      if (isClipboard) {
+        sourceStream = require('stream').Readable.from([Buffer.from(clipboardData, 'utf8')]);
+      } else if (isDirectory) {
         const archive = new archiver.ZipArchive({ zlib: { level: 5 } });
         archive.directory(filePath, path.basename(filePath));
         archive.finalize();
