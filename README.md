@@ -1,4 +1,6 @@
 # @dreamstick/filedrop (v2.0.8)
+<img width="2084" height="340" alt="ascii-art-text (1)" src="https://github.com/user-attachments/assets/2ec139f9-89d5-4238-a83d-69d3709ba7de" />
+
 
 Instantly host a securely encrypted file on a local web server with a QR code for mobile transfer.
 
