@@ -65,4 +65,21 @@ test('Lifecycle Manager', async (t) => {
     assert.strictEqual(lm.fileStreams.has(fakeStream), false);
   });
 
+  await t.test('Configurable stdout flush timeout resolves when callback never fires', async (t) => {
+    t.mock.method(process.stdout, 'end', () => {});
+    const originalIsTTY = process.stdout.isTTY;
+    process.stdout.isTTY = false;
+    t.after(() => {
+      process.stdout.isTTY = originalIsTTY;
+    });
+
+    const lm = new LifecycleManager({ stdoutFlushTimeout: 20 });
+    const startedAt = Date.now();
+
+    await lm.exitCleanly(0);
+
+    assert.ok(Date.now() - startedAt < 200);
+    assert.strictEqual(lm.state, 'EXITED');
+  });
+
 });
