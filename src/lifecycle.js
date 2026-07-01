@@ -28,6 +28,7 @@ class LifecycleManager extends EventEmitter {
     this.state = STATES.INITIALIZING;
     this.connectionTimeoutSeconds = config.timeout || 300;
     this.transferTimeoutSeconds = 60; // Hardcoded 60s limit for transfer after connection
+    this.stdoutFlushTimeout = config.stdoutFlushTimeout ?? 500;
     
     this.connectionTimer = null;
     this.transferTimer = null;
@@ -233,7 +234,7 @@ class LifecycleManager extends EventEmitter {
             process.stdout.end('', done);
           }
 
-          setTimeout(done, 500);
+          setTimeout(done, this.stdoutFlushTimeout);
         });
       } catch (e) {
          console.error('Failed to flush stdout:', e);
